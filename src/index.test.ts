@@ -1,4 +1,7 @@
-import { updateSelectedServices, calculatePrice, ServiceYear, ServiceType } from ".";
+import { updateSelectedServices, calculatePrice } from ".";
+import { ServiceType } from "./shared/service-type";
+import { ServiceYear } from "./shared/service-year";
+
 
 describe("updateSelectedServices.select", () => {
     test("should select when not selected", () => {
@@ -16,6 +19,11 @@ describe("updateSelectedServices.select", () => {
         expect(result).toEqual(["WeddingSession"]);
     });
 
+    test("should not select related service when main service is not selected", () => {
+        const result = updateSelectedServices([], { type: "Select", service: "TwoDayEvent" });
+        expect(result).toEqual([]);
+    });
+
     test("should select related service when main service is selected", () => {
         const result = updateSelectedServices(["WeddingSession", "VideoRecording"], {
             type: "Select",
@@ -24,7 +32,15 @@ describe("updateSelectedServices.select", () => {
         expect(result).toEqual(["WeddingSession", "VideoRecording", "BlurayPackage"]);
     });
 
-    test("should select related service when one of main services is selected", () => {
+    test("should select related service when main service is selected for VideoRecording and TwoDayEvent", () => {
+        const result = updateSelectedServices(["WeddingSession", "VideoRecording"], {
+            type: "Select",
+            service: "TwoDayEvent"
+        });
+        expect(result).toEqual(["WeddingSession", "VideoRecording", "TwoDayEvent"]);
+    });
+
+    test("should select related service when one of main services is selected for Photography and TwoDayEvent", () => {
         const result = updateSelectedServices(["WeddingSession", "Photography"], {
             type: "Select",
             service: "TwoDayEvent"
@@ -50,10 +66,27 @@ describe("updateSelectedServices.deselect", () => {
         expect(result).toEqual(["WeddingSession", "Photography"]);
     });
 
-    test("should deselect related when last main service deselected", () => {
+
+    test("should deselect related when last main service deselected for Photography and TwoDayEvent", () => {
         const result = updateSelectedServices(["WeddingSession", "Photography", "TwoDayEvent"], {
             type: "Deselect",
             service: "Photography"
+        });
+        expect(result).toEqual(["WeddingSession"]);
+    });
+
+    test("should deselect related when last main service deselected for VideoRecording and TwoDayEvent", () => {
+        const result = updateSelectedServices(["WeddingSession", "VideoRecording", "TwoDayEvent"], {
+            type: "Deselect",
+            service: "VideoRecording"
+        });
+        expect(result).toEqual(["WeddingSession"]);
+    });
+
+    test("should deselect related when last main service deselected for VideoRecording and BluerayPackage", () => {
+        const result = updateSelectedServices(["WeddingSession", "VideoRecording", "BlurayPackage"], {
+            type: "Deselect",
+            service: "VideoRecording"
         });
         expect(result).toEqual(["WeddingSession"]);
     });
@@ -98,6 +131,7 @@ describe.each([
     });
 });
 
+
 describe.each([
     [2020, 300],
     [2021, 300],
@@ -123,7 +157,9 @@ describe.each([
 
         expect(priceWithoutDiscounts).toBeGreaterThan(withSession.finalPrice);
     });
+
 });
+
 
 describe.each([
     [2020, 300],
@@ -150,6 +186,8 @@ describe.each([
     });
 });
 
+
+//is package of photography + video an discount?
 describe.each([
     [2020, 500],
     [2021, 500],
@@ -174,6 +212,7 @@ describe.each([
         expect(priceWithoutDiscounts).toBeGreaterThan(withPhotography.finalPrice);
     });
 });
+
 
 describe.each([
     [2020, 300],
@@ -201,6 +240,125 @@ describe.each([
             const priceWithoutDiscounts = withoutSession.finalPrice + onlySession.finalPrice;
 
             expect(priceWithoutDiscounts).toBeGreaterThan(withSession.finalPrice);
+        });
+    }
+);
+
+//extra tests
+
+describe.each([
+    [2020, 2300,2000],
+    [2021, 2400,2100],
+    [2022, 2500,1900]
+])("calcularePrice.photographyWithWeddingSessionPrice (year: %s, basePrice: %i, finalPrice %p)", (year: ServiceYear, basePrice, finalPrice) => {
+    test("price matches requirements", () => {
+        
+        const actualPrice = calculatePrice(["Photography", "WeddingSession"], year);
+        expect(actualPrice.basePrice).toEqual(basePrice);
+        expect(actualPrice.finalPrice).toEqual(finalPrice);
+
+    });
+});
+
+describe.each([
+    [2020, 2300,2000],
+    [2021, 2400,2100],
+    [2022, 2500,2200]
+])("calcularePrice.videoRecordingWithWeddingSessionPrice (year: %s, basePrice: %i, finalPrice %p)", (year: ServiceYear, basePrice,finalPrice) => {
+    test("price matches requirements", () => {
+        const actualPrice = calculatePrice(["VideoRecording", "WeddingSession"], year);
+        expect(actualPrice.basePrice).toEqual(basePrice);
+        expect(actualPrice.finalPrice).toEqual(finalPrice);
+    });
+
+});
+
+describe.each([
+    [2020, 2200,2200],
+    [2021, 2300,2300],
+    [2022, 2500,2500]
+])("calcularePrice.videoRecordingWithPhotographyPrice (year: %s, basePrice: %i, finalPrice %p)", (year: ServiceYear, basePrice, finalPrice) => {
+    test("price matches requirements", () => {
+        const actualPrice = calculatePrice(["VideoRecording", "Photography"], year);
+        expect(actualPrice.basePrice).toEqual(basePrice);
+        expect(actualPrice.finalPrice).toEqual(finalPrice)
+    });
+});
+
+describe.each([
+    [2020, 2800,2500],
+    [2021, 2900,2600],
+    [2022, 3100,2500]
+])(
+    "calcularePrice.videoRecordingWithPhotographyWithSessionPrice (year: %s, basePrice: %i, finalPrice %p)",
+    (year: ServiceYear, basePrice, finalPrice) => {
+        test("price matches requirements", () => {
+            const actualPrice = calculatePrice(["VideoRecording", "Photography", "WeddingSession"], year);
+            expect(actualPrice.basePrice).toEqual(basePrice);
+            expect(actualPrice.finalPrice).toEqual(finalPrice);
+        });
+    }
+);
+
+
+describe.each([
+    [2020, 2000,2000],
+    [2021, 2100,2100],
+    [2022, 2200,2200]
+])(
+    "calcularePrice.videoRecordingWithExtraBlueRayPrice (year: %s, basePrice: %i, finalPrice %p)",
+    (year: ServiceYear, basePrice, finalPrice) => {
+        test("price matches requirements", () => {
+            const actualPrice = calculatePrice(["VideoRecording", "BlurayPackage"], year);
+            expect(actualPrice.basePrice).toEqual(basePrice);
+            expect(actualPrice.finalPrice).toEqual(finalPrice);
+        });
+    }
+);
+
+
+describe.each([
+    [2020, 1700,1700],
+    [2021, 1800,1800],
+    [2022, 1900,1900]
+])(
+    "calcularePrice.photographyWithExtraBlueRayPrice (year: %s, basePrice: %i, finalPrice %p)",
+    (year: ServiceYear, basePrice, finalPrice) => {
+        test("price matches requirements", () => {
+            const actualPrice = calculatePrice(["Photography", "BlurayPackage"], year);
+            expect(actualPrice.basePrice).toEqual(basePrice);
+            expect(actualPrice.finalPrice).toEqual(finalPrice);
+        });
+    }
+);
+
+
+describe.each([
+    [2020, 2600,2600],
+    [2021, 2700,2700],
+    [2022, 2900,2900]
+])(
+    "calcularePrice.videoRecordingWithPhotographyWithTwoDayEvent (year: %s, basePrice: %i, finalPrice %p)",
+    (year: ServiceYear, basePrice, finalPrice) => {
+        test("price matches requirements", () => {
+            const actualPrice = calculatePrice(["VideoRecording", "Photography", "TwoDayEvent"], year);
+            expect(actualPrice.basePrice).toEqual(basePrice);
+            expect(actualPrice.finalPrice).toEqual(finalPrice);
+        });
+    }
+);
+
+describe.each([
+    [2020, 600,600],
+    [2021, 600,600],
+    [2022, 600,600]
+])(
+    "calcularePrice.weddingSessionWithTwoDayEvent (year: %s, basePrice: %i, finalPrice %p)",
+    (year: ServiceYear, basePrice, finalPrice) => {
+        test("price matches requirements", () => {
+            const actualPrice = calculatePrice(["WeddingSession", "TwoDayEvent"], year);
+            expect(actualPrice.basePrice).toEqual(basePrice);
+            expect(actualPrice.finalPrice).toEqual(finalPrice);
         });
     }
 );
